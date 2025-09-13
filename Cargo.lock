@@ -2453,6 +2453,7 @@ dependencies = [
 name = "game-of-life"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bevy",
  "clap",
  "crossterm 0.29.0",

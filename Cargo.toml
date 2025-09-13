@@ -12,6 +12,7 @@ viuer = "0.9"
 crossterm = "0.29"
 bevy = "0.16"
 clap = { version = "4.5", features = ["derive"] }
+anyhow = "1.0"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
