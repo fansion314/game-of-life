@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive_name: ${{ github.event.repository.name }}-${{ github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            archive_name: ${{ github.event.repository.name }}-${{ github.ref_name }}-aarch64-apple-darwin.zip
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive_name: ${{ github.event.repository.name }}-${{ github.ref_name }}-x86_64-pc-windows-msvc.zip
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+
+      - name: Install Bevy dependencies (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev pkg-config libudev-dev libwayland-dev libxkbcommon-dev libx11-dev libxrandr-dev libxi-dev libxcursor-dev libvulkan-dev
+
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package binary (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $BINARY_NAME = "${{ github.event.repository.name }}.exe"
+          $ARCHIVE_PATH = "target/${{ matrix.target }}/release/$BINARY_NAME"
+          Compress-Archive -Path $ARCHIVE_PATH -DestinationPath ${{ matrix.archive_name }}
+
+      - name: Package binary (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: |
+          BINARY_NAME="${{ github.event.repository.name }}"
+          ARCHIVE_PATH="target/${{ matrix.target }}/release/$BINARY_NAME"
+          tar -czvf ${{ matrix.archive_name }} $ARCHIVE_PATH
+
+      - name: Create Release and Upload Artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ matrix.archive_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
