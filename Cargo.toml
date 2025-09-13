@@ -1,0 +1,29 @@
+[package]
+name = "game-of-life"
+version = "0.1.0"
+edition = "2024"
+authors = ["Peilin Fan <peilin.fan@foxmail.com>"]
+
+[dependencies]
+rand = "0.9"
+rayon = "1.11"
+image = "0.25"
+viuer = "0.9"
+crossterm = "0.29"
+bevy = "0.16"
+clap = { version = "4.5", features = ["derive"] }
+
+# Enable a small amount of optimization in debug mode
+[profile.dev]
+opt-level = 1
+
+# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+incremental = false
+debug = false
