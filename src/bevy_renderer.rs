@@ -1,6 +1,7 @@
 use crate::game::{self, Game};
 // --- Bevy Renderer ---
 use crate::Cli;
+use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
 use std::time::Duration;
 
@@ -11,6 +12,16 @@ struct CellSprite(usize); // Holds the index of the cell in the Game struct
 struct GameColors {
     background: Color,
 }
+
+#[derive(States, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+enum GameState {
+    #[default]
+    Playing,
+    Paused,
+}
+
+#[derive(Component)]
+struct FpsText;
 
 pub fn run(cli: Cli) {
     let game_width = cli.width.unwrap_or(120);
@@ -35,6 +46,9 @@ pub fn run(cli: Cli) {
                 ..default()
             }),
         )
+        .add_plugins(FrameTimeDiagnosticsPlugin::default())
+        // .add_plugins(LogDiagnosticsPlugin::default())
+        .init_state::<GameState>()
         .insert_resource(ClearColor(bg_color))
         .insert_resource(GameColors {
             background: bg_color,
@@ -53,11 +67,17 @@ pub fn run(cli: Cli) {
             cli.genesis_density,
         ))
         .add_systems(Startup, setup)
-        .add_systems(FixedUpdate, (game_tick, update_visuals).chain())
+        .add_systems(Update, (toggle_pause_state, fps_text_update_system))
+        .add_systems(
+            FixedUpdate,
+            (game_tick, update_visuals)
+                .chain()
+                .run_if(in_state(GameState::Playing)),
+        )
         .run();
 }
 
-fn parse_color(s: &str) -> std::result::Result<Color, ()> {
+pub fn parse_color(s: &str) -> std::result::Result<Color, ()> {
     let s_lower = s.to_lowercase();
     let named_color = match s_lower.as_str() {
         "black" => Some(Color::BLACK),
@@ -110,14 +130,25 @@ fn setup(mut commands: Commands, game: Res<Game>) {
             commands.spawn((
                 cell_sprite.clone(),
                 Transform::from_xyz(
-                    (x as f32 - game_width as f32 / 2.0) * cell_size,
-                    (y as f32 - game_height as f32 / 2.0) * cell_size,
+                    (x as f32 - game_width as f32 / 2.0 + 0.5) * cell_size,
+                    (y as f32 - game_height as f32 / 2.0 + 0.5) * cell_size,
                     0.0,
                 ),
                 CellSprite(index),
             ));
         }
     }
+
+    let fps_text_style = (
+        TextFont {
+            font_size: 24.0,
+            ..default()
+        },
+        TextColor(Color::WHITE),
+    );
+    commands
+        .spawn((Text::new("FPS: "), fps_text_style.clone()))
+        .with_child((TextSpan::default(), fps_text_style, FpsText));
 }
 
 fn game_tick(mut game: ResMut<Game>) {
@@ -135,5 +166,32 @@ fn update_visuals(
             Some(cell_color) => cell_color, // Use the cell's actual color
             None => colors.background,      // Use the background color if dead
         };
+    }
+}
+
+fn toggle_pause_state(
+    mut next_state: ResMut<NextState<GameState>>,
+    current_state: Res<State<GameState>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Space) {
+        next_state.set(match current_state.get() {
+            GameState::Playing => GameState::Paused,
+            GameState::Paused => GameState::Playing,
+        })
+    }
+}
+
+fn fps_text_update_system(
+    diagnostics: Res<DiagnosticsStore>,
+    mut query: Query<&mut TextSpan, With<FpsText>>,
+) {
+    for mut span in &mut query {
+        if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS)
+            && let Some(value) = fps.smoothed()
+        {
+            let value = value.round() as u32;
+            **span = format!("{value}");
+        }
     }
 }

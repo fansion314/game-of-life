@@ -1,5 +1,7 @@
 //! Conway's Game of Life, with two rendering backends and advanced color genetics.
 
+// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod bevy_renderer;
 mod game;
 mod terminal_renderer;
@@ -15,11 +17,11 @@ pub struct Cli {
     renderer: Renderer,
 
     /// Width of the game grid
-    #[arg(short, long)]
+    #[arg(long)]
     width: Option<usize>,
 
     /// Height of the game grid
-    #[arg(short, long)]
+    #[arg(long)]
     height: Option<usize>,
 
     /// Target frames per second (tick rate)

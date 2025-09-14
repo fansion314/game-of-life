@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
 
 jobs:
   build-and-release:
@@ -55,8 +56,8 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           BINARY_NAME="${{ github.event.repository.name }}"
-          ARCHIVE_PATH="target/${{ matrix.target }}/release/$BINARY_NAME"
-          tar -czvf ${{ matrix.archive_name }} $ARCHIVE_PATH
+          RELEASE_DIR="target/${{ matrix.target }}/release"
+          tar -czvf ${{ matrix.archive_name }} -C $RELEASE_DIR $BINARY_NAME
 
       - name: Create Release and Upload Artifact
         uses: softprops/action-gh-release@v1
