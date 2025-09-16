@@ -1,18 +1,25 @@
 //! Conway's Game of Life, with two rendering backends and advanced color genetics.
 
-// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(
+    all(not(debug_assertions), feature = "terminal"),
+    windows_subsystem = "windows"
+)]
 
 mod bevy_renderer;
 mod game;
+#[cfg(feature = "terminal")]
 mod terminal_renderer;
 
 // --- Main App ---
-use clap::{Parser, ValueEnum};
+use clap::Parser;
+#[cfg(feature = "terminal")]
+use clap::ValueEnum;
 
 #[derive(Parser, Clone)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     /// Choose the rendering backend
+    #[cfg(feature = "terminal")]
     #[arg(short, long, value_enum, default_value_t = Renderer::Bevy)]
     renderer: Renderer,
 
@@ -62,6 +69,7 @@ pub struct Cli {
     pixel_scale: u32,
 }
 
+#[cfg(feature = "terminal")]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Renderer {
     /// Render in the terminal using viuer (monochrome)
@@ -73,6 +81,7 @@ enum Renderer {
 fn main() {
     let cli = Cli::parse();
 
+    #[cfg(feature = "terminal")]
     match cli.renderer {
         Renderer::Terminal => {
             println!("Starting terminal renderer... Press 'q' or 'Esc' to quit.");
@@ -85,4 +94,6 @@ fn main() {
             bevy_renderer::run(cli);
         }
     }
+    #[cfg(not(feature = "terminal"))]
+    bevy_renderer::run(cli);
 }

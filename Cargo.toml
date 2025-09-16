@@ -7,12 +7,16 @@ authors = ["Peilin Fan <peilin.fan@foxmail.com>"]
 [dependencies]
 rand = "0.9"
 rayon = "1.11"
-image = "0.25"
-viuer = "0.9"
-crossterm = "0.29"
+image = { version = "0.25", optional = true }
+viuer = { version = "0.9", optional = true }
+crossterm = { version = "0.29", optional = true }
 bevy = "0.16"
 clap = { version = "4.5", features = ["derive"] }
 anyhow = "1.0"
+
+[features]
+default = []
+terminal = ["dep:viuer", "dep:crossterm", "dep:image"]
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
