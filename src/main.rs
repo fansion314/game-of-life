@@ -1,7 +1,7 @@
 //! Conway's Game of Life, with two rendering backends and advanced color genetics.
 
 #![cfg_attr(
-    all(not(debug_assertions), feature = "terminal"),
+    all(not(debug_assertions), not(feature = "terminal")),
     windows_subsystem = "windows"
 )]
 
